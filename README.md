@@ -10,7 +10,7 @@ Part of a 9-project portfolio built in 8 weeks. 5 ADRs, 557 tests, 12 evaluation
 **Live Dashboard:** Deploying in Week 8 of the portfolio sprint. Link will be added here.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/rubsj/ai-portfolio/main/02-rag-evaluation/docs/screenshots/dashboard.png" alt="Streamlit Dashboard" width="800"/>
+  <img src="https://raw.githubusercontent.com/rubsj/ai-rag-evaluation-framework/main/docs/screenshots/dashboard.png" alt="Streamlit Dashboard" width="800"/>
 </p>
 
 ## Results
@@ -92,19 +92,19 @@ The 16 configs come from crossing 5 chunking strategies with 3 embedding models,
 ### Evaluation charts
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/rubsj/ai-portfolio/main/02-rag-evaluation/results/charts/config_heatmap.png" alt="Config × Metric Heatmap" width="700"/>
+  <img src="https://raw.githubusercontent.com/rubsj/ai-rag-evaluation-framework/main/results/charts/config_heatmap.png" alt="Config × Metric Heatmap" width="700"/>
 </p>
 
 The embedding model rows cluster tightly regardless of chunk config. The vertical bands show that chunk size barely moves the needle compared to embedding model choice.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/rubsj/ai-portfolio/main/02-rag-evaluation/docs/screenshots/reranking_comparison.png" alt="Reranking Before/After" width="700"/>
+  <img src="https://raw.githubusercontent.com/rubsj/ai-rag-evaluation-framework/main/docs/screenshots/reranking_comparison.png" alt="Reranking Before/After" width="700"/>
 </p>
 
 Every config improved with reranking. The weakest configs got the biggest lift, which suggests reranking partially compensates for bad chunking or weak embeddings.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/rubsj/ai-portfolio/main/02-rag-evaluation/docs/screenshots/embedding_comparison.png" alt="Embedding Model Comparison" width="700"/>
+  <img src="https://raw.githubusercontent.com/rubsj/ai-rag-evaluation-framework/main/docs/screenshots/embedding_comparison.png" alt="Embedding Model Comparison" width="700"/>
 </p>
 
 MPnet (768d) and MiniLM (384d) are nearly identical. The jump happens at OpenAI (1536d). If dimensionality were the driver, MPnet should sit in between.
@@ -128,7 +128,7 @@ MPnet (768d) and MiniLM (384d) are nearly identical. The jump happens at OpenAI 
 ## Quick Start
 
 ```bash
-cd 02-rag-evaluation
+cd ai-rag-evaluation-framework
 uv sync
 cp .env.example .env  # Add OPENAI_API_KEY, COHERE_API_KEY, BRAINTRUST_API_KEY
 
