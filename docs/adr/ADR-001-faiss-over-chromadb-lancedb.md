@@ -6,55 +6,30 @@
 
 ## Context
 
-P2 is a benchmarking framework evaluating 16 retrieval configurations (5 chunking strategies × 3 embedding models + BM25 baseline). Each config requires its own vector index with direct access to raw similarity scores for Recall@K, Precision@K, and MRR@K computation. The corpus is ~500–1200 chunks per config (<1K vectors), so approximate nearest neighbor, metadata filtering, and server processes are unnecessary overhead.
+P2 is a benchmarking framework evaluating 16 retrieval configurations: 5 chunking strategies × 3 embedding models + a BM25 baseline. Each config requires its own vector index with direct access to raw similarity scores for Recall@K, Precision@K, and MRR@K computation. The corpus runs ~500 to 1200 chunks per config (under 1K vectors), so approximate nearest neighbor, metadata filtering, and server processes are unnecessary overhead.
 
 ## Decision
 
-Use **faiss-cpu with IndexFlatIP** (brute-force inner product) as the vector store, wrapped in a thin `FAISSVectorStore` class (~90 lines in `src/vector_store.py`).
+I used **faiss-cpu with IndexFlatIP** (brute-force inner product) as the vector store, wrapped in a thin `FAISSVectorStore` class (~90 lines in `src/vector_store.py`).
 
-1. **IndexFlatIP** computes exact inner product. Since our embedder L2-normalizes all vectors, inner product = cosine similarity. No approximation error.
-2. **Brute-force is fast at our scale** — <1ms per query for <1K vectors. Approximate indices (IVF, HNSW) add complexity with no benefit under ~10K vectors.
-3. **Two-file persistence** — `.faiss` binary (FAISS native `write_index`) + `.json` sidecar (chunk ID list). The JSON sidecar is human-readable for debugging and maps FAISS integer positions back to chunk IDs.
-4. **Validation on `add()`** — dimension mismatch and ID count mismatch raise immediately, not silently at search time. The same `search(query, k)` return signature is shared with `BM25Retriever`.
+`IndexFlatIP` computes exact inner product. Since the embedder L2-normalizes all vectors, inner product equals cosine similarity, with zero approximation error. Brute-force is fast at this scale: under 1ms per query for under 1K vectors. Approximate indices (IVF, HNSW) would add complexity with no benefit below ~10K vectors.
+
+Persistence is two files per index: a `.faiss` binary via FAISS native `write_index`, plus a `.json` sidecar storing the chunk ID list. The sidecar is human-readable for debugging and maps FAISS integer positions back to chunk IDs. Validation on `add()` catches dimension mismatch and ID count mismatch immediately, not silently at search time. The same `search(query, k)` return signature is shared with `BM25Retriever`.
 
 ## Alternatives Considered
 
-| Option | Pros | Cons | Why Not |
-|--------|------|------|---------|
-| **FAISS IndexFlatIP** ✅ | Raw scores for metric computation, exact results, <1ms queries, no server process, 1 dependency (faiss-cpu) | Manual chunk ID mapping via JSON sidecar, no built-in metadata filtering | — (selected) |
-| ChromaDB | Built-in persistence + metadata filtering, auto-generates IDs, popular in RAG tutorials | Abstraction hides raw similarity scores (returns distances not similarities), manages its own SQLite/DuckDB storage, harder to create/load 15 separate collections cleanly | Abstraction hides the scores we need for fair benchmarking |
-| LanceDB | Columnar on-disk format, embedded (no server), scales well for large datasets | Overkill for <1K vectors, adds columnar format dependency, abstracts away index internals we need to inspect | Over-engineered for our scale |
+**ChromaDB** - Built-in persistence and metadata filtering, auto-generates IDs, popular in RAG tutorials. But ChromaDB's abstraction hides raw similarity scores (it returns distances, not similarities), manages its own SQLite/DuckDB storage, and makes it harder to create and load 15 separate collections cleanly. For a benchmarking framework that needs to compare raw retrieval quality across configs, that abstraction layer works against you.
+
+**LanceDB** - Columnar on-disk format, embedded with no server, scales well for larger datasets. But it's overkill for under 1K vectors, adds a columnar format dependency, and abstracts away the index internals I needed to inspect. Over-engineered for the scale I was working at.
 
 ## Quantified Validation
 
-- **15 separate indices** built and loaded independently with zero conflicts
-- **<1ms per query** for <1K vectors — brute-force is faster than ANN index setup at this scale
-- **~90 LOC** for FAISSVectorStore wrapper — fully auditable, no hidden behavior
-- **Two-file persistence** (`.faiss` + `.json` sidecar): human-inspectable chunk ID mapping enabled debugging cross-config gold chunk resolution
-- **Zero approximation error**: IndexFlatIP + L2-normalized vectors = exact cosine similarity
+I built and loaded 15 separate indices independently with zero conflicts. Query latency on under 1K vectors was under 1ms, so brute-force was faster than ANN index setup overhead at this scale. The `FAISSVectorStore` wrapper came in at ~90 lines of code, fully auditable with no hidden behavior. The two-file persistence pattern (`.faiss` + `.json` sidecar) made it possible to inspect chunk ID mappings when debugging cross-config gold chunk resolution.
 
 ## Consequences
 
-**Easier:** Raw similarity scores flow directly into metric computation. Each config's index is a pair of files that can be inspected, moved, or deleted independently. FAISSVectorStore is small enough to understand completely — no hidden behavior from a managed store. Same FAISS library that production systems (Meta, Spotify) use at scale.
+Raw similarity scores flow directly into metric computation with no translation layer. Each config's index is a pair of files I can inspect, move, or delete independently.
 
-**Harder:** Chunk ID mapping is manual — we maintain a parallel list and a JSON sidecar file. No metadata filtering (not needed for benchmarking). If we needed 1M+ vectors, we'd need to switch to IndexIVFFlat or HNSW and add training steps.
+Chunk ID mapping is manual: I maintain a parallel list and a JSON sidecar file. There's no metadata filtering, which wasn't needed for benchmarking. If this needed to scale to 1M+ vectors, I'd need to switch to IndexIVFFlat or HNSW and add training steps.
 
-**Portability:** P3 reused FAISS IndexFlatIP for embedding similarity evaluation. P4 switched to ChromaDB for production (metadata filtering, live API) — confirming FAISS was right specifically for benchmarking but insufficient for serving.
-
-## Cross-References
-
-- **ADR-002**: Chunk configs define what goes INTO each FAISS index — 5 configs × 3 models = 15 indices
-- **ADR-003**: Embedding model determines vector dimensions (384/768/1536) stored in FAISS
-- **ADR-004**: QA evaluation runs `search()` against all 15 FAISS indices; Strategy 2 uses `reconstruct_n()` for chunk similarity
-- **ADR-005**: Post-reranking results (0.747 R@5) still flow through FAISS retrieval as the first stage
-- **P4 ADR-005**: P4 switched to ChromaDB for live API needs — validates that FAISS was correct for benchmarking but insufficient for serving
-
-## Java/TS Parallel
-
-FAISS is like using **raw JDBC** instead of **Hibernate/JPA**. You write the SQL (index operations) yourself, you see every result set (raw scores), and you manage the connection lifecycle (create/save/load). A managed vector store like ChromaDB is the Hibernate equivalent — convenient for CRUD applications, but when you're benchmarking query performance, you want the raw driver so nothing is hidden. The `FAISSVectorStore` class is our thin DAO layer — it adds ID mapping and validation but doesn't abstract away FAISS's behavior.
-
-**The key insight:** Choose the lowest-abstraction tool that satisfies your requirements. Benchmarking needs raw scores and full control; production needs managed lifecycle and metadata filtering. The right tool depends on the job, not the popularity.
-
-## Interview Signal
-
-Demonstrates **context-dependent tool selection**. The engineer chose FAISS for benchmarking (raw scores, full control) and later switched to ChromaDB for production serving (P4), proving the decision wasn't dogmatic but fit-for-purpose. This signals understanding that infrastructure choices should be driven by use case constraints, not convention or tutorial defaults.
+P3 reused FAISS IndexFlatIP for embedding similarity evaluation. P4 switched to ChromaDB for production use (metadata filtering, live API), which confirmed that FAISS was the right call for benchmarking but not sufficient for serving. (This is roughly the same tradeoff as raw JDBC vs. Hibernate in Java: you want the raw driver when you need to see every result set, and the managed layer when you need lifecycle and filtering.)
