@@ -1,13 +1,13 @@
 # PRD: P2 — Evaluating RAG for Any PDF
 
-> **This is the implementation contract.** Claude Code: read this + CLAUDE.md before starting each session.
+> **This is the implementation contract.** Claude Code: read this + ../CLAUDE.md before starting each session.
 > Do NOT re-debate architecture decisions. They are final. If something is ambiguous, ask the user.
 
 **Project:** P2 — RAG Evaluation Benchmarking Framework
 **Timeline:** Feb 12–17, 2026 (Thu–Mon, 5 sessions)
 **Owner:** Developer (Java/TS background, learning Python — completed P1)
 **Source of Truth:** [Notion Requirements](https://www.notion.so/Mini_Project_2_Requirements-2ffdb630640a81228d16c6e28b48366b)
-**Concepts Primer:** `p2-concepts-primer.html` (read for RAG, embeddings, chunking, FAISS, BM25, RAGAS theory)
+**Concepts Primer:** `learning/concepts-primer.html` (read for RAG, embeddings, chunking, FAISS, BM25, RAGAS theory)
 **PRD Version:** v3 (gap analysis from Notion requirements applied)
 
 ---
@@ -651,7 +651,7 @@ python-dotenv              # Environment variables
 Each session starts by telling Claude Code:
 
 ```
-Read CLAUDE.md and PRD.md. Today is Day [N].
+Read ../CLAUDE.md and PRD.md. Today is Day [N].
 Here's where I left off: [checkpoint from yesterday]
 Focus on tasks [#X through #Y] from the PRD.
 ```
