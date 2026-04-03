@@ -1,6 +1,6 @@
 # CLAUDE.md — P2: RAG Evaluation Benchmarking Framework
 
-> **Read this file + PRD.md at the start of EVERY session.**
+> **Read this file + docs/PRD.md at the start of EVERY session.**
 > This is your persistent memory across sessions. Update the "Current State" section before ending each session.
 
 ---
@@ -10,8 +10,8 @@
 - **Project:** P2 — Evaluating RAG for Any PDF
 - **Location:** `02-rag-evaluation/` within `ai-portfolio` monorepo
 - **Timeline:** Feb 12–17, 2026 (5 sessions, ~22-24h total)
-- **PRD:** `PRD.md` in this directory — the implementation contract
-- **Concepts Primer:** `p2-concepts-primer.html` in project root — read for theory background
+- **PRD:** `docs/PRD.md` — the implementation contract
+- **Concepts Primer:** `docs/learning/concepts-primer.html` — read for theory background
 
 ---
 
@@ -191,7 +191,7 @@ Content:
 
 ### Starting a session:
 ```
-Read CLAUDE.md and PRD.md. Today is Day [N].
+Read CLAUDE.md and docs/PRD.md. Today is Day [N].
 Here's where I left off: [paste handoff from previous session]
 Focus on tasks [#X through #Y] from PRD Section 10.
 Stop after each task and wait for my approval before moving to the next one.
@@ -337,7 +337,7 @@ Reference these from `01-synthetic-data-home-diy/` when implementing P2:
 
 ## Key Concepts Quick Reference
 
-(For deep explanation, read `p2-concepts-primer.html`)
+(For deep explanation, read `docs/learning/concepts-primer.html`)
 
 - **RAG:** Retrieve relevant context from your docs → inject into LLM prompt → generate grounded answer
 - **Embeddings:** Vectors (arrays of floats) that represent text meaning. Similar text → similar vectors.
